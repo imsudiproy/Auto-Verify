@@ -1,4 +1,6 @@
 images=("ubuntu:20.04" "ubuntu:22.04")  # Enter images to test on
 test=false  # set true if you want to execute test
 user=test  # User to run the script (root or test)
-build_script="/home/asus/Desktop/auditScript/build_script.sh"  # Path to the build script
+build_script="/path/to/your/build_script.sh"  # Path to the build script
+patch=false  # Set true if patches need to be applied
+patch_folder="/path/to/patch/folder"  # Path to the patch folder

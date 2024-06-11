@@ -30,12 +30,12 @@ run_verification() {
     image_name=$1
     container_name=$(echo "$image_name" | tr ':/' '_')"_container"
     log_file="${log_dir}/$(echo "$image_name" | tr ':/' '_')_logs.txt"
-    # If the user is root
     script_path="/build_script.sh"
+    patch_path="/patch"
 
-    # If the user is test
     if [ "$user" == "test" ]; then
         script_path="/home/test/build_script.sh"
+        patch_path="/home/test/patch"
     fi
 
     # Create container
@@ -49,6 +49,30 @@ run_verification() {
     docker cp "$build_script" "$container_id:$script_path"
     if [ $? -ne 0 ]; then
         echo "Failed to copy build script to container: $container_id" | tee -a "$log_file"
+        docker rm -f "$container_id"
+        return 1
+    fi
+
+    # Copy patch folder to container if patch is set to true
+    if [ "$patch" == "true" ]; then
+        if [[ -d "$patch_folder" ]]; then
+            docker cp "$patch_folder" "$container_id:$patch_path"
+            if [ $? -ne 0 ]; then
+                echo "Failed to copy patch folder to container: $container_id" | tee -a "$log_file"
+                docker rm -f "$container_id"
+                return 1
+            fi
+        else
+            echo "Patch folder not found: $patch_folder"
+            docker rm -f "$container_id"
+            return 1
+        fi
+    fi
+
+    # Update the build script inside the container to use the copied patch path
+    docker exec "$container_id" sed -i "s|PATCH_URL=\".*\"|PATCH_URL=\"$patch_path\"|g" "$script_path"
+    if [ $? -ne 0 ]; then
+        echo "Failed to update the patch URL in the build script inside the container: $container_id" | tee -a "$log_file"
         docker rm -f "$container_id"
         return 1
     fi
